@@ -1,0 +1,8 @@
+N počet vrcholů
+M hran
+for M:
+A B p
+kde A - index vrcholu1, B - index vrcholu2, p - počet pomerančů na hraně mezi těmito vrcholy
+X - počet požadavků
+for x:
+č - početPomerančůCoChceKamion
