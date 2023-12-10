@@ -78,7 +78,7 @@ namespace SklizeniPomerancu
         public int SklidPomerance(int PočetPomerancuKolikChceKamion)
         {
             AktualizovatAbsolutniHodnotyVrcholů();
-            //Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString());
+            Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString());
             bool pujdeToSnadno = false;
             foreach (IVrchol vrchol in vrcholyGrafu)
             {
