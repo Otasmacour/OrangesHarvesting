@@ -22,3 +22,5 @@
 ```
 # Visual representation of graph, built from the above input
 ![20231209_203808](https://github.com/Otasmacour/SklizeniPomerancu/assets/111227700/d29a94e9-ab33-42c9-b12e-0256ee3565cf)
+- The blue numbers mark the indexes of the nodes  
+- The orange numbers represent the number of orange on each node. Why on the nodes instead of edges, in a way that makes sense given the format of the input. I figured that the given number of oranges is on the one of the two given edges that is further away from the starting node, (the root of the whole tree logically won't have any oranges on it).
