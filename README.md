@@ -26,3 +26,9 @@ And a few more important rules, you can only harvest nodes "from above", of cour
 - The blue numbers mark the indexes of the nodes  
 - The orange numbers represent the number of orange on each node. Why on the nodes instead of edges, in a way that makes sense given the format of the input. I figured that the given number of oranges is on the one of the two given edges that is further away from the starting node, (the root of the whole tree logically won't have any oranges on it).
 - Finally, the red numbers in parentheses are the absolute values of the nodes. This is not an absolute value as you might think. The absolute value of a node is the number of oranges that would fall down the tree if a given node were "chopped off".
+# Output to the above input
+```txt
+0 - no remainder, it harvested nodes number 2, 4, 5, 6, 7, 8, 9, 10 and 11
+0 - again, no remainder, it harvested nodes number 1 and 3
+-1 - because by this time all nodes have been harvested.
+```
