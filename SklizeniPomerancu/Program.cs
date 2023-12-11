@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -17,9 +18,9 @@ namespace SklizeniPomerancu
             stromek.SestavGraf(item.Item1, item.pocetVrcholu);
             foreach(int n in item.pomerančeKeSklizeni)
             {
-                Console.WriteLine("return "+stromek.SklidPomerance(n));
+                Console.WriteLine("Zbytek: "+stromek.SklidPomerance(n));
+                Console.ReadLine();
             }
-            Console.ReadLine();
         }
         static (List<(int, int , int)> , int pocetVrcholu, List<int> pomerančeKeSklizeni) PripravaVstupu()
         {
@@ -74,30 +75,43 @@ namespace SklizeniPomerancu
     }
     class Stromek : IStrom
     {
+        bool vypisovaciMod;
         public List<IVrchol> vrcholyGrafu { get; set ; }
         public int SklidPomerance(int PočetPomerancuKolikChceKamion)
         {
+            vypisovaciMod = true;
+            if (vypisovaciMod) { Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString()); }
             AktualizovatAbsolutniHodnotyVrcholů();
-            Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString());
+            if(AbsolutniHodnotaCelehoStromu() < PočetPomerancuKolikChceKamion)
+            {
+                if(vypisovaciMod) { Console.WriteLine("Počet všech pomerančů na stromě: "+AbsolutniHodnotaCelehoStromu()); }
+                return -1;
+            }
             bool pujdeToSnadno = false;
             foreach (IVrchol vrchol in vrcholyGrafu)
             {
                 if (vrchol.absolutniHodnota == PočetPomerancuKolikChceKamion)
                 {
-                    //Console.WriteLine("Sklidit: " + vrchol.index.ToString());
+                    if (vypisovaciMod){Console.WriteLine("Sklidit: " + vrchol.index.ToString());}
                     pujdeToSnadno = true;
+                    SklidVrcholy(new List<IVrchol> { vrchol });
+                    return 0;
                 }
             }
             if(pujdeToSnadno == false)
             {
                 List<List<IVrchol>> kombinace = KombinaceVšechSečtitelnýchVrcholů();
-                Console.WriteLine(kombinace.Count);
                 List<IVrchol> vrcholyKeSklizeni = vyberVhodneVrcholyKeSklizeni(PočetPomerancuKolikChceKamion, kombinace);
-                Console.WriteLine("Vrcholy vhodné ke sklizení:");
-                foreach(IVrchol vrcgol in  vrcholyKeSklizeni)
+                if (vypisovaciMod)
                 {
-                    Console.WriteLine(vrcgol.index.ToString());
+                    Console.WriteLine("Počet kombinací: " + kombinace.Count);
+                    Console.WriteLine("Vrcholy vhodné ke sklizení:");
+                    foreach (IVrchol vrcgol in vrcholyKeSklizeni)
+                    {
+                        Console.WriteLine(vrcgol.index.ToString());
+                    }
                 }
+                return (SoučetAbsolutnichHodnotVrcholu(vrcholyKeSklizeni) - PočetPomerancuKolikChceKamion);
             }
             return 0;
         }
@@ -143,7 +157,7 @@ namespace SklizeniPomerancu
                     //}
                 }
             }
-            Console.ReadLine();
+            //Console.ReadLine();
             return všechnyKombinace;
         }
         public List<IVrchol> vyberVhodneVrcholyKeSklizeni(int PomerancuKolikChceKamion, List<List<IVrchol>> všechnyKombinace)
@@ -166,10 +180,10 @@ namespace SklizeniPomerancu
                 {
                     vhodneVrcholy = kombinaceVrcholu;
                 }
-                //else if(vhodneVrcholy.Count > 0 && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) >= PomerancuKolikChceKamion && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) < SoučetAbsolutnichHodnotVrcholu(vhodneVrcholy))
-                //{
-                //    vhodneVrcholy = kombinaceVrcholu;
-                //}
+                else if (vhodneVrcholy.Count > 0 && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) >= PomerancuKolikChceKamion && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) < SoučetAbsolutnichHodnotVrcholu(vhodneVrcholy))
+                {
+                    vhodneVrcholy = kombinaceVrcholu;
+                }
             }
             return vhodneVrcholy;
         }
@@ -282,11 +296,11 @@ namespace SklizeniPomerancu
             {
                 AbsolutniHodnotaRodice(sousedStartu);
             }
-            //Console.WriteLine("Absolutní hodnoty vrcholů:");
-            //foreach (IVrchol vrchol in vrcholyGrafu)
-            //{
-            //    Console.WriteLine(vrchol.index.ToString() + ": " + vrchol.absolutniHodnota);
-            //}
+            Console.WriteLine("Absolutní hodnoty vrcholů:");
+            foreach (IVrchol vrchol in vrcholyGrafu)
+            {
+                Console.WriteLine(vrchol.index.ToString() + ": " + vrchol.absolutniHodnota);
+            }
         }
         public int AbsolutniHodnotaRodice(IVrchol vrchol)
         {
@@ -307,6 +321,18 @@ namespace SklizeniPomerancu
                 vrchol.absolutniHodnota = hodnotaRodiče + vrchol.pocetPomernacu;
                 return vrchol.absolutniHodnota;
             }
+        }
+        public int AbsolutniHodnotaCelehoStromu()
+        {
+            int number = 0;
+            foreach(IVrchol vrchol in vrcholyGrafu)
+            {
+                if(vrchol != start)
+                {
+                    number += vrchol.absolutniHodnota;
+                }
+            }
+            return number;
         }
         public void SestavGraf(List<(int Vrchol1, int Vrchol2, int PocetPomerancu)> values, int PocetVrcholu)
         {
@@ -372,7 +398,20 @@ namespace SklizeniPomerancu
         }
         public void SklidVrcholy(List<IVrchol> vrcholyKeSklizeni)
         {
-            throw new NotImplementedException();
+            foreach (IVrchol vrchol in vrcholyKeSklizeni)
+            {
+                Console.WriteLine("sklizen - " + vrchol.index);
+                vrchol.pocetPomernacu = 0;
+                vrchol.absolutniHodnota = 0;
+                //vrcholyGrafu.Remove(vrchol);
+                foreach (IVrchol rodic in vrchol.rodiče)
+                {
+                    Console.WriteLine("sklizen - " + rodic.index);
+                    //vrcholyGrafu.Remove(rodic);
+                    rodic.pocetPomernacu = 0;
+                    vrchol.absolutniHodnota = 0;
+                }
+            }
         }
     }
     interface IVrchol
@@ -401,5 +440,6 @@ namespace SklizeniPomerancu
         void AktualizovatAbsolutniHodnotyVrcholů();
         List<IVrchol> RodiceVrcholu(IVrchol vrchol);
         int AbsolutniHodnotaRodice(IVrchol vrchol);
+        int AbsolutniHodnotaCelehoStromu();
     }
 }
