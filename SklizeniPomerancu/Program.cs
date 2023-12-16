@@ -134,13 +134,13 @@ namespace SklizeniPomerancu
                 return -1;
             }
             bool itIsGoingToBeEasy = false;
-            foreach (INode vrchol in graphNodes)
+            foreach (INode node in graphNodes)
             {
-                if (vrchol.absoluteValue == theNumberOfOrangesRequested)
+                if (node.absoluteValue == theNumberOfOrangesRequested)
                 {
-                    if (debugMode){Console.WriteLine("Sklidit: " + vrchol.index.ToString());}
+                    if (debugMode){Console.WriteLine("Sklidit: " + node.index.ToString());}
                     itIsGoingToBeEasy = true;
-                    HarvestNodes(new List<INode> { vrchol });
+                    HarvestNodes(new List<INode> { node });
                     return 0;
                 }
             }
