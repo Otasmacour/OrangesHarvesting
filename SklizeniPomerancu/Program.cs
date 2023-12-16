@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SklizeniPomerancu
 {
@@ -13,55 +8,22 @@ namespace SklizeniPomerancu
     {
         static void Main(string[] args)
         {
-            bool vypisovaciMod = false;
-            var item = PripravaVstupu();
-            Stromek stromek = new Stromek();
-            stromek.SestavGraf(item.Item1, item.pocetVrcholu);
-            foreach(int PočetPomerancuKolikChceKamion in item.pomerančeKeSklizeni)
+            var item = InputPreparation();
+            Tree tree = new Tree();
+            tree.BuildGraph(item.Item1, item.numberOfNodes);
+            foreach(int PočetPomerancuKolikChceKamion in item.orangesToHarvest)
             {
-                //Console.WriteLine("Zbytek: "+stromek.SklidPomerance(PočetPomerancuKolikChceKamion));
-                if (vypisovaciMod) { Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString()); }
-                stromek.AktualizovatAbsolutniHodnotyVrcholů();
-                if (stromek.AbsolutniHodnotaCelehoStromu() < PočetPomerancuKolikChceKamion)
+                if(tree.debugMode)
                 {
-                    if (vypisovaciMod) { Console.WriteLine("Počet všech pomerančů na stromě: " + stromek.AbsolutniHodnotaCelehoStromu()); }
-                    Console.WriteLine("-1");
+                    Console.Write("Zbytek: ");
                 }
-                bool pujdeToSnadno = false;
-                foreach (IVrchol vrchol in stromek.vrcholyGrafu)
-                {
-                    if (vrchol.absolutniHodnota == PočetPomerancuKolikChceKamion)
-                    {
-                        if (vypisovaciMod) { Console.WriteLine("Sklidit: " + vrchol.index.ToString()); }
-                        pujdeToSnadno = true;
-                        stromek.SklidVrcholy(new List<IVrchol> { vrchol });
-                        Console.WriteLine("0");
-                    }
-                }
-                if (pujdeToSnadno == false)
-                {
-                    List<List<IVrchol>> kombinace = stromek.KombinaceVšechSečtitelnýchVrcholů();
-                    List<IVrchol> vrcholyKeSklizeni = stromek.vyberVhodneVrcholyKeSklizeni(PočetPomerancuKolikChceKamion, kombinace);
-                    int součetAbsolutnichHodnotVrcholu = stromek.SoučetAbsolutnichHodnotVrcholu(vrcholyKeSklizeni);
-                    stromek.SklidVrcholy(vrcholyKeSklizeni);
-                    if (vypisovaciMod)
-                    {
-                        Console.WriteLine("Počet kombinací: " + kombinace.Count);
-                        Console.WriteLine("Vrcholy vhodné ke sklizení:");
-                        foreach (IVrchol vrcgol in vrcholyKeSklizeni)
-                        {
-                            Console.WriteLine(vrcgol.index.ToString());
-                        }
-                    }
-                    Console.WriteLine(součetAbsolutnichHodnotVrcholu - PočetPomerancuKolikChceKamion);
-                }
-                Console.ReadLine();
+                Console.WriteLine(tree.Solve(PočetPomerancuKolikChceKamion));
             }
+            Console.ReadLine();
         }
-        static (List<(int, int , int)> , int pocetVrcholu, List<int> pomerančeKeSklizeni) PripravaVstupu()
+        static (List<(int, int , int)> , int numberOfNodes, List<int> orangesToHarvest) InputPreparation()
         {
-            List<(int Vrchol1, int Vrchol2, int PocetPomerancu)> values = new List<(int, int, int)>();
-            //Vrchol 1, Vrchol2, Počet Pomerančů
+            List<(int Node1, int Node2, int numberOfOranges)> values = new List<(int, int, int)>();
             List<string> input = new List<string>();
             using (StreamReader sr = new StreamReader(@"C:\Users\macou\source\repos\SklizeniPomerancu\SklizeniPomerancu\input.txt"))
             {
@@ -75,69 +37,68 @@ namespace SklizeniPomerancu
             for (int i = 2; i < int.Parse(input[1])+2; i++)
             {
                 index++;
-                string lajn = input[i];
-                String[] line = lajn.Split(' ');
-                int vrchol1 = int.Parse(line[0]);
-                int vrchol2 = int.Parse(line[1]);
-                int pocetPomarancu = int.Parse(line[2]);
-                values.Add((vrchol1, vrchol2, pocetPomarancu));
+                string line1 = input[i];
+                String[] line = line1.Split(' ');
+                int node1 = int.Parse(line[0]);
+                int node2 = int.Parse(line[1]);
+                int numberOfOrangess = int.Parse(line[2]);
+                values.Add((node1, node2, numberOfOrangess));
             }
             index++;
-            int početPomerančů = int.Parse(input[index]);
+            int numberOfOranges = int.Parse(input[index]);
             index++;
-            List<int> pomerančeKeSklizeni = new List<int>();
-            for(int i = 0; i < početPomerančů; i++)
+            List<int> orangesToHarvest = new List<int>();
+            for(int i = 0; i < numberOfOranges; i++)
             {
-                pomerančeKeSklizeni.Add(int.Parse(input[index]));
+                orangesToHarvest.Add(int.Parse(input[index]));
                 index++;
             }
-            return (values, int.Parse(input[0]), pomerančeKeSklizeni);
+            return (values, int.Parse(input[0]), orangesToHarvest);
         }
     }
-    class Vrchol : IVrchol
+    class Node : INode
     {
         public int index { get; set; }
-        public List<IVrchol> sousedi { get; set; }
-        public int absolutniHodnota { get; set; }
-        public int pocetPomernacu { get; set; }
-        public IVrchol potomek { get; set; }
-        public List<IVrchol> potomci { get; set; }
-        public List<IVrchol> rodiče { get; set; }
-        public List<IVrchol> sousedicirodiče { get; set; }
+        public List<INode> adjacent { get; set; }
+        public int absoluteValue { get; set; }
+        public int orangesNumber { get; set; }
+        public INode descendant { get; set; }
+        public List<INode> parents { get; set; }
+        public List<INode> adjacentParents { get; set; }
     }
-    class Stromek : IStrom
+    class Tree : ITree
     {
-        bool vypisovaciMod;
-        public List<IVrchol> vrcholyGrafu { get; set ; }
-        public IVrchol start { get; set; }
-        public Dictionary<IVrchol, int> depths { get; set; }
-        public void SestavGraf(List<(int Vrchol1, int Vrchol2, int PocetPomerancu)> values, int PocetVrcholu)
+        public bool debugMode = false;
+        public List<INode> graphNodes { get; set ; }
+        public INode start { get; set; }
+        public Dictionary<INode, int> depths { get; set; }
+        public void BuildGraph(List<(int Node1, int Node2, int numberOfOranges)> values, int numberOfNodes)
         {
-            vrcholyGrafu = new List<IVrchol>();
-            for (int i = 0; i < PocetVrcholu; i++)
+            graphNodes = new List<INode>();
+            for (int i = 0; i < numberOfNodes; i++)
             {
-                Vrchol vrchol = new Vrchol();
+                Node vrchol = new Node();
                 vrchol.index = i;
-                vrchol.sousedi = new List<IVrchol>();
-                vrchol.rodiče = new List<IVrchol>();
-                vrchol.sousedicirodiče = new List<IVrchol>();
-                vrcholyGrafu.Add(vrchol);
+                vrchol.adjacent = new List<INode>();
+                vrchol.parents = new List<INode>();
+                vrchol.adjacentParents = new List<INode>();
+                graphNodes.Add(vrchol);
             }
-            start = vrcholyGrafu[0];
+            start = graphNodes[0];
             foreach (var item in values)
             {
-                vrcholyGrafu[item.Vrchol1].sousedi.Add(vrcholyGrafu[item.Vrchol2]);
-                vrcholyGrafu[item.Vrchol2].sousedi.Add(vrcholyGrafu[item.Vrchol1]);
+                graphNodes[item.Node1].adjacent.Add(graphNodes[item.Node2]);
+                graphNodes[item.Node1].adjacent.Add(graphNodes[item.Node2]);
             }
-            depths = new Dictionary<IVrchol, int>();
-            Queue<IVrchol> queue = new Queue<IVrchol>();
+            depths = new Dictionary<INode, int>();
+            Queue<INode> queue = new Queue<INode>();
             queue.Enqueue(start);
             depths.Add(start, 0);
             while (queue.Count > 0)
             {
-                IVrchol vrchol = queue.Dequeue();
-                List<IVrchol> sousedi = vrchol.sousedi;
-                foreach (IVrchol soused in sousedi)
+                INode vrchol = queue.Dequeue();
+                List<INode> sousedi = vrchol.adjacent;
+                foreach (INode soused in sousedi)
                 {
                     if (depths.ContainsKey(soused) == false)
                     {
@@ -146,338 +107,287 @@ namespace SklizeniPomerancu
                     }
                 }
             }
-            //Console.WriteLine("Depths");
-            //foreach(var item in depths)
-            //{
-            //    Console.WriteLine(item.Key.index.ToString()+": "+item.Value.ToString());
-            //}
             foreach (var item in values)
             {
-                IVrchol vrchol1 = vrcholyGrafu[item.Vrchol1];
-                IVrchol vrchol2 = vrcholyGrafu[item.Vrchol2];
+                INode vrchol1 = graphNodes[item.Node1];
+                INode vrchol2 = graphNodes[item.Node2];
                 if (depths[vrchol1] > depths[vrchol2])
                 {
-                    vrchol1.pocetPomernacu = item.PocetPomerancu;
-                    vrchol2.sousedicirodiče.Add(vrchol1);
+                    vrchol1.orangesNumber = item.numberOfOranges;
+                    vrchol2.adjacentParents.Add(vrchol1);
                 }
                 else
                 {
-                    vrchol2.pocetPomernacu = item.PocetPomerancu;
-                    vrchol1.sousedicirodiče.Add(vrchol2);
+                    vrchol2.orangesNumber = item.numberOfOranges;
+                    vrchol1.adjacentParents.Add(vrchol2);
                 }
             }
-            //Console.WriteLine("Pocet pomerančů");
-            //foreach (var item in vrcholyGrafu)
-            //{
-            //    Console.WriteLine(item.index.ToString() + ": " + item.pocetPomernacu.ToString());
-            //}
-            PriradVrcholumRodice();
+            AssignPArentsToNodes();
         }
-        public int SklidPomerance(int PočetPomerancuKolikChceKamion)
+        public int Solve(int theNumberOfOrangesRequested)
         {
-            vypisovaciMod = true;
-            if (vypisovaciMod) { Console.WriteLine("Chce tolik pomerančů: " + PočetPomerancuKolikChceKamion.ToString()); }
-            AktualizovatAbsolutniHodnotyVrcholů();
-            if(AbsolutniHodnotaCelehoStromu() < PočetPomerancuKolikChceKamion)
+            if (debugMode) { Console.WriteLine("Chce tolik pomerančů: " + theNumberOfOrangesRequested.ToString()); }
+            UpdateAbsoluteValuesOfAllNodes();
+            if(NumberOfOrangesOnTheWholeGraph() < theNumberOfOrangesRequested)
             {
-                if(vypisovaciMod) { Console.WriteLine("Počet všech pomerančů na stromě: "+AbsolutniHodnotaCelehoStromu()); }
+                if(debugMode) { Console.WriteLine("Počet všech pomerančů na stromě: "+NumberOfOrangesOnTheWholeGraph()); }
                 return -1;
             }
-            bool pujdeToSnadno = false;
-            foreach (IVrchol vrchol in vrcholyGrafu)
+            bool itIsGoingToBeEasy = false;
+            foreach (INode vrchol in graphNodes)
             {
-                if (vrchol.absolutniHodnota == PočetPomerancuKolikChceKamion)
+                if (vrchol.absoluteValue == theNumberOfOrangesRequested)
                 {
-                    if (vypisovaciMod){Console.WriteLine("Sklidit: " + vrchol.index.ToString());}
-                    pujdeToSnadno = true;
-                    SklidVrcholy(new List<IVrchol> { vrchol });
+                    if (debugMode){Console.WriteLine("Sklidit: " + vrchol.index.ToString());}
+                    itIsGoingToBeEasy = true;
+                    HarvestNodes(new List<INode> { vrchol });
                     return 0;
                 }
             }
-            if(pujdeToSnadno == false)
+            if(itIsGoingToBeEasy == false)
             {
-                List<List<IVrchol>> kombinace = KombinaceVšechSečtitelnýchVrcholů();
-                List<IVrchol> vrcholyKeSklizeni = vyberVhodneVrcholyKeSklizeni(PočetPomerancuKolikChceKamion, kombinace);
-                int součetAbsolutnichHodnotVrcholu = SoučetAbsolutnichHodnotVrcholu(vrcholyKeSklizeni);
-                SklidVrcholy(vrcholyKeSklizeni);
-                if (vypisovaciMod)
+                List<List<INode>> combinations = CombinationsOfAllTheNumbersThatCanBeAddedUp();
+                List<INode> nodesToHarvest = selectNodesToHarvest(theNumberOfOrangesRequested, combinations);
+                int sumOfAbsoluteValuesOfNodes = SumOfAbsoluteValuesOfNodes(nodesToHarvest);
+                HarvestNodes(nodesToHarvest);
+                if (debugMode)
                 {
-                    Console.WriteLine("Počet kombinací: " + kombinace.Count);
+                    Console.WriteLine("Počet kombinací: " + combinations.Count);
                     Console.WriteLine("Vrcholy vhodné ke sklizení:");
-                    foreach (IVrchol vrcgol in vrcholyKeSklizeni)
+                    foreach (INode vrcgol in nodesToHarvest)
                     {
                         Console.WriteLine(vrcgol.index.ToString());
                     }
                 }
-                return (součetAbsolutnichHodnotVrcholu - PočetPomerancuKolikChceKamion);
+                return (sumOfAbsoluteValuesOfNodes - theNumberOfOrangesRequested);
             }
             return 0;
         }      
-        public List<IVrchol> vyberVhodneVrcholyKeSklizeni(int PomerancuKolikChceKamion, List<List<IVrchol>> všechnyKombinace)
+        public List<INode> selectNodesToHarvest(int theNumberOfOrangesRequested, List<List<INode>> allCorrectCombinations)
         {
-            List<IVrchol> vhodneVrcholy = new List<IVrchol>();
-            foreach(List<IVrchol> kombinaceVrcholu in všechnyKombinace)
+            List<INode> result = new List<INode>();
+            foreach(List<INode> combinations in allCorrectCombinations)
             {
-                if(SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) == PomerancuKolikChceKamion)
+                if(SumOfAbsoluteValuesOfNodes(combinations) == theNumberOfOrangesRequested)
                 {
-                    //Console.WriteLine("Chce tolik pomerančů: "+PomerancuKolikChceKamion.ToString());
-                    //Console.WriteLine("A tahle kombinace mu vyhovuje:");
-                    //foreach(IVrchol vrchol in  kombinaceVrcholu)
-                    //{
-                    //    Console.WriteLine(vrchol.index.ToString());
-                    //}
-                    //Console.ReadLine();
-                    return kombinaceVrcholu;
+                    return combinations;
                 }
-                else if(vhodneVrcholy.Count == 0 && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) >= PomerancuKolikChceKamion)
+                else if(result.Count == 0 && SumOfAbsoluteValuesOfNodes(combinations) >= theNumberOfOrangesRequested)
                 {
-                    vhodneVrcholy = kombinaceVrcholu;
+                    result = combinations;
                 }
-                else if (vhodneVrcholy.Count > 0 && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) >= PomerancuKolikChceKamion && SoučetAbsolutnichHodnotVrcholu(kombinaceVrcholu) < SoučetAbsolutnichHodnotVrcholu(vhodneVrcholy))
+                else if (result.Count > 0 && SumOfAbsoluteValuesOfNodes(combinations) >= theNumberOfOrangesRequested && SumOfAbsoluteValuesOfNodes(combinations) < SumOfAbsoluteValuesOfNodes(result))
                 {
-                    vhodneVrcholy = kombinaceVrcholu;
+                    result = combinations;
                 }
             }
-            return vhodneVrcholy;
+            return result;
         }
-        public void SklidVrcholy(List<IVrchol> vrcholyKeSklizeni)
+        public void HarvestNodes(List<INode> nodesToHarvest)
         {
-            foreach (IVrchol vrchol in vrcholyKeSklizeni)
+            foreach (INode node in nodesToHarvest)
             {
-                Console.WriteLine("sklizen - " + vrchol.index);
-                vrchol.pocetPomernacu = 0;
-                vrchol.absolutniHodnota = 0;
-                //vrcholyGrafu.Remove(vrchol);
-                foreach (IVrchol rodic in vrchol.rodiče)
+                node.orangesNumber = 0;
+                node.absoluteValue = 0;
+                foreach (INode parent in node.parents)
                 {
-                    Console.WriteLine("sklizen - " + rodic.index);
-                    //vrcholyGrafu.Remove(rodic);
-                    rodic.pocetPomernacu = 0;
-                    vrchol.absolutniHodnota = 0;
+                    parent.orangesNumber = 0;
+                    node.absoluteValue = 0;
                 }
             }
         }
-        public int SoučetAbsolutnichHodnotVrcholu(List<IVrchol> vrcholyKSečteni)
+        public int SumOfAbsoluteValuesOfNodes(List<INode> nodesToAddUp)
         {
-            int součet = 0;
-            foreach(IVrchol vrchol in vrcholyKSečteni)
+            int sum = 0;
+            foreach(INode node in nodesToAddUp)
             {
-                součet += vrchol.absolutniHodnota;
+                sum += node.absoluteValue;
             }
-            return součet;
+            return sum;
         }
-        public  List<List<IVrchol>> VytvoreniVsechKombinaci(List<IVrchol> vrcholy)
+        public  List<List<INode>> CreateAllCombinations(List<INode> nodes)
         {
-            List<List<IVrchol>> vsechnyKombinace = new List<List<IVrchol>>();
-            for (int i = 1; i <= vrcholy.Count; i++)
+            List<List<INode>> result = new List<List<INode>>();
+            for (int i = 1; i <= nodes.Count; i++)
             {
-                var kombinaceDaneDelky = VytvoreniKombinaciVrcholu(vrcholy, i);
-                vsechnyKombinace.AddRange(kombinaceDaneDelky);
+                var combinationsOfThatLength = CreateCombinations(nodes, i);
+                result.AddRange(combinationsOfThatLength);
             }
-            return vsechnyKombinace;
+            return result;
         }
-        public List<List<IVrchol>> VytvoreniKombinaciVrcholu(List<IVrchol> vrcholy, int delka)
+        public List<List<INode>> CreateCombinations(List<INode> nodes, int lenght)
         {
-            List<List<IVrchol>> kombinace = new List<List<IVrchol>>();
-            Kombinace(vrcholy, 0, delka, new List<IVrchol>(), kombinace);
-            List<List<IVrchol>> listyKOdebrani = new List<List<IVrchol>>();
-            foreach(List<IVrchol> vrcholyVKombinaci in kombinace)
+            List<List<INode>> combination = new List<List<INode>>();
+            Combination(nodes, 0, lenght, new List<INode>(), combination);
+            List<List<INode>> combinationsToRemove = new List<List<INode>>();
+            foreach(List<INode> nodesOfTheCombination in combination)
             {
-                bool jeVPohodě = true;
-                foreach(IVrchol vrchol1 in vrcholyVKombinaci)
+                bool ok = true;
+                foreach(INode node1 in nodesOfTheCombination)
                 {
-                    foreach (IVrchol vrchol2 in vrcholyVKombinaci)
+                    foreach (INode node2 in nodesOfTheCombination)
                     {
-                        if (vrchol1.rodiče.Contains(vrchol2) == true || vrchol2.rodiče.Contains(vrchol1) == true)
+                        if (node1.parents.Contains(node2) == true || node2.parents.Contains(node1) == true)
                         {
-                            jeVPohodě = false;
+                            ok = false;
                         }
                     }
                 }
-                if(jeVPohodě == false)
+                if(ok == false)
                 {
-                    listyKOdebrani.Add(vrcholyVKombinaci);
+                    combinationsToRemove.Add(nodesOfTheCombination);
                 }
             }
-            foreach(var item in  listyKOdebrani)
+            foreach(var item in  combinationsToRemove)
             {
-                kombinace.Remove(item);
+                combination.Remove(item);
             }
-            return kombinace;
+            return combination;
         }
-        static void Kombinace(List<IVrchol> vrcholy, int index, int delka, List<IVrchol> aktualniKombinace, List<List<IVrchol>> vsechnyKombinace)
+        static void Combination(List<INode> nodes, int index, int length, List<INode> currentCombination, List<List<INode>> allCombinations)
         {
-            if (delka == 0)
+            if (length == 0)
             {
-                vsechnyKombinace.Add(new List<IVrchol>(aktualniKombinace));
+                allCombinations.Add(new List<INode>(currentCombination));
                 return;
             }
-            for (int i = index; i < vrcholy.Count; i++)
+            for (int i = index; i < nodes.Count; i++)
             {
-                aktualniKombinace.Add(vrcholy[i]);
-                Kombinace(vrcholy, i + 1, delka - 1, aktualniKombinace, vsechnyKombinace);
-                aktualniKombinace.RemoveAt(aktualniKombinace.Count - 1);
+                currentCombination.Add(nodes[i]);
+                Combination(nodes, i + 1, length - 1, currentCombination, allCombinations);
+                currentCombination.RemoveAt(currentCombination.Count - 1);
             }
         }
-        public void PriradVrcholumRodice()
+        public void AssignPArentsToNodes()
         {
-            foreach(IVrchol sousedStartu in start.sousedi)
+            foreach(INode adjacentNode in start.adjacent)
             {
-                RodiceVrcholu(sousedStartu);
-            }
-            //Console.WriteLine("Rodiče vrcholu:");
-            //foreach (IVrchol vrchol in vrcholyGrafu)
-            //{
-            //    Console.WriteLine(vrchol.index.ToString() + ":");
-            //    foreach (IVrchol rodic in vrchol.rodiče)
-            //    {
-            //        Console.WriteLine("-" + rodic.index.ToString());
-            //    }
-            //    Console.WriteLine();
-            //}
-        }
-        public void AktualizovatAbsolutniHodnotyVrcholů()
-        {
-            foreach (IVrchol sousedStartu in start.sousedi)
-            {
-                AbsolutniHodnotaRodice(sousedStartu);
-            }
-            Console.WriteLine("Absolutní hodnoty vrcholů:");
-            foreach (IVrchol vrchol in vrcholyGrafu)
-            {
-                Console.WriteLine(vrchol.index.ToString() + ": " + vrchol.absolutniHodnota);
+                ParentsOfNodes(adjacentNode);
             }
         }
-        public List<IVrchol> RodiceVrcholu(IVrchol vrchol)
+        public void UpdateAbsoluteValuesOfAllNodes()
         {
-            List<IVrchol> rodice = new List<IVrchol>();
-            foreach (IVrchol soused in vrchol.sousedi)
+            foreach (INode adjacentNode in start.adjacent)
             {
-                if (depths[soused] > depths[vrchol])
+                AbsoluteValueOfParent(adjacentNode);
+            }
+            if(debugMode)
+            {
+                Console.WriteLine("Absolutní hodnoty vrcholů:");
+                foreach (INode node in graphNodes)
                 {
-                    if (soused.sousedi.Count == 1)
+                    Console.WriteLine(node.index.ToString() + ": " + node.absoluteValue);
+                }
+            }      
+        }
+        public List<INode> ParentsOfNodes(INode node)
+        {
+            List<INode> parents = new List<INode>();
+            foreach (INode adjacentNode in node.adjacent)
+            {
+                if (depths[adjacentNode] > depths[node])
+                {
+                    if (adjacentNode.adjacent.Count == 1)
                     {
-                        rodice.Add(soused);
+                        parents.Add(adjacentNode);
                     }
                     else
                     {
-                        List<IVrchol> rodiceSouseda = RodiceVrcholu(soused);
-                        rodice.AddRange(rodiceSouseda);
-                        rodice.Add(soused);
+                        List<INode> parentsOfAdjacentNode = ParentsOfNodes(adjacentNode);
+                        parents.AddRange(parentsOfAdjacentNode);
+                        parents.Add(adjacentNode);
                     }
                 }
             }
-            vrchol.rodiče = rodice;
-            return rodice;
+            node.parents = parents;
+            return parents;
         }     
-        public int AbsolutniHodnotaRodice(IVrchol vrchol)
+        public int AbsoluteValueOfParent(INode node)
         {
-            if(vrchol.rodiče.Count == 0)
+            if(node.parents.Count == 0)
             {
-                vrchol.absolutniHodnota = vrchol.pocetPomernacu;
-                return vrchol.absolutniHodnota;
+                node.absoluteValue = node.orangesNumber;
+                return node.absoluteValue;
             }
             else
             {
-                //Console.WriteLine(vrchol.index.ToString()+ ":");
-                int hodnotaRodiče = 0;
-                foreach(IVrchol rodič in vrchol.sousedicirodiče)
+                int valueOfParent = 0;
+                foreach(INode parent in node.adjacentParents)
                 {
-                    //Console.WriteLine(rodič.index);
-                    hodnotaRodiče += AbsolutniHodnotaRodice(rodič);
+                    valueOfParent += AbsoluteValueOfParent(parent);
                 }
-                vrchol.absolutniHodnota = hodnotaRodiče + vrchol.pocetPomernacu;
-                return vrchol.absolutniHodnota;
+                node.absoluteValue = valueOfParent + node.orangesNumber;
+                return node.absoluteValue;
             }
         }
-        public int AbsolutniHodnotaCelehoStromu()
+        public int NumberOfOrangesOnTheWholeGraph()
         {
             int number = 0;
-            foreach(IVrchol vrchol in vrcholyGrafu)
+            foreach(INode node in start.adjacentParents)
             {
-                if(vrchol != start)
+                if(node != start)
                 {
-                    number += vrchol.absolutniHodnota;
+                    number += node.absoluteValue;
                 }
             }
+            if (debugMode) { Console.WriteLine("Hodnota všech je: " + number); }
             return number;
         }
-        
-        
-        public List<List<IVrchol>> KombinaceVšechSečtitelnýchVrcholů()
+        public List<List<INode>> CombinationsOfAllTheNumbersThatCanBeAddedUp()
         {
-            List<List<IVrchol>> všechnyKombinace = new List<List<IVrchol>>();
-            foreach (IVrchol vrchol in vrcholyGrafu)
+            List<List<INode>> allCombination = new List<List<INode>>();
+            foreach (INode node in graphNodes)
             {
-                if (vrchol != start)
+                if (node != start)
                 {
-                    List<IVrchol> vrcholyDoKombinace = new List<IVrchol>();
-                    foreach (IVrchol vrcholKeKombinaci in vrcholyGrafu)
+                    List<INode> nodesToCombinations = new List<INode>();
+                    foreach (INode nodeToCombination in graphNodes)
                     {
-                        if (vrcholKeKombinaci == start)
+                        if (nodeToCombination == start)
                         {
-
                         }
-                        else if (vrcholKeKombinaci == vrchol)
+                        else if (nodeToCombination == node)
                         {
-                            vrcholyDoKombinace.Add(vrcholKeKombinaci);
+                            nodesToCombinations.Add(nodeToCombination);
                         }
-                        else if (vrchol.rodiče.Contains(vrcholKeKombinaci) == false && vrcholKeKombinaci.rodiče.Contains(vrchol) == false)
+                        else if (node.parents.Contains(nodeToCombination) == false && nodeToCombination.parents.Contains(node) == false)
                         {
-                            vrcholyDoKombinace.Add(vrcholKeKombinaci);
+                            nodesToCombinations.Add(nodeToCombination);
                         }
                     }
-                    //Console.WriteLine("Vrcholy do kombinace jsou:");
-                    //foreach(IVrchol vrcholDoKombinace in vrcholyDoKombinace)
-                    //{
-                    //    Console.WriteLine("-"+vrcholDoKombinace.index.ToString());
-                    //}
-                    List<List<IVrchol>> kombinaceZVrcholu = VytvoreniVsechKombinaci(vrcholyDoKombinace);
-                    všechnyKombinace.AddRange(kombinaceZVrcholu);
-                    //Console.WriteLine();
-                    //Console.WriteLine("Možné kombinace jsou takovéto:");
-                    //foreach(var item in  kombinaceZVrcholu)
-                    //{
-                    //    foreach(IVrchol vrcholVKombinaci in item)
-                    //    {
-                    //        Console.Write(vrcholVKombinaci.index.ToString()+" ");
-                    //    }
-                    //    Console.WriteLine();
-                    //}
+                    List<List<INode>> combinations = CreateAllCombinations(nodesToCombinations);
+                    allCombination.AddRange(combinations);
                 }
             }
-            //Console.ReadLine();
-            return všechnyKombinace;
+            return allCombination;
         }
     }
-    interface IVrchol
+    interface INode
     {
         int index { get; set; }
-        List<IVrchol> sousedi { get; set; }
-        int absolutniHodnota { get; set; }
-        int pocetPomernacu { get; set; }
-        //int naKolikaZavisiAliasKolikMaNesklizenychPotomku { get; set; }
-        IVrchol potomek { get; set; }
-        List<IVrchol> potomci { get; set; }
-        List<IVrchol> rodiče { get; set; }
-        List<IVrchol> sousedicirodiče { get; set; }
+        List<INode> adjacent { get; set; }
+        int absoluteValue { get; set; }
+        int orangesNumber { get; set; }
+        INode descendant { get; set; }
+        List<INode> parents { get; set; }
+        List<INode> adjacentParents { get; set; }
     }
-    interface IStrom
+    interface ITree
     {
-        List <IVrchol> vrcholyGrafu { get; set; }
-        IVrchol start { get; set; }
-        Dictionary<IVrchol, int> depths { get; set; }
-        void SestavGraf(List<(int Vrchol1, int Vrchol2, int PocetPomerancu)> values, int PocetVrcholu);
-        int SklidPomerance(int PomerancuKolikChceKamion);
-        List<IVrchol> vyberVhodneVrcholyKeSklizeni(int PomerancuKolikChceKamion, List<List<IVrchol>> všechnyKombinace);
-        void SklidVrcholy(List<IVrchol> vrcholyKeSklizeni);
-        int SoučetAbsolutnichHodnotVrcholu(List<IVrchol> vrcholyKSečteni);
-        List<List<IVrchol>> VytvoreniVsechKombinaci(List<IVrchol> vrcholy);
-        List<List<IVrchol>> VytvoreniKombinaciVrcholu(List<IVrchol> vrcholy, int delka);
-        void PriradVrcholumRodice();
-        void AktualizovatAbsolutniHodnotyVrcholů();
-        List<IVrchol> RodiceVrcholu(IVrchol vrchol);
-        int AbsolutniHodnotaRodice(IVrchol vrchol);
-        int AbsolutniHodnotaCelehoStromu();
+        List <INode> graphNodes { get; set; }
+        INode start { get; set; }
+        Dictionary<INode, int> depths { get; set; }
+        void BuildGraph(List<(int Node1, int Node2, int numberOfOranges)> values, int numberOfNodes);
+        int Solve(int theNumberOfOrangesRequested);
+        List<INode> selectNodesToHarvest(int theNumberOfOrangesRequested, List<List<INode>> allCorrectCombinations);
+        void HarvestNodes(List<INode> nodesToHarvest);
+        int SumOfAbsoluteValuesOfNodes(List<INode> nodesToAddUp);
+        List<List<INode>> CreateAllCombinations(List<INode> nodes);
+        List<List<INode>> CreateCombinations(List<INode> nodes, int length);
+        void AssignPArentsToNodes();
+        void UpdateAbsoluteValuesOfAllNodes();
+        List<INode> ParentsOfNodes(INode node);
+        int AbsoluteValueOfParent(INode node);
+        int NumberOfOrangesOnTheWholeGraph();
     }
 }
